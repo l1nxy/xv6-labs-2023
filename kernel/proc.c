@@ -309,6 +309,7 @@ fork(void)
   np->cwd = idup(p->cwd);
 
   safestrcpy(np->name, p->name, sizeof(p->name));
+  np->mask = p->mask;
 
   pid = np->pid;
 
@@ -664,12 +665,12 @@ void
 procdump(void)
 {
   static char *states[] = {
-  [UNUSED]    "unused",
-  [USED]      "used",
-  [SLEEPING]  "sleep ",
-  [RUNNABLE]  "runble",
-  [RUNNING]   "run   ",
-  [ZOMBIE]    "zombie"
+  [UNUSED]    = "unused",
+  [USED]      = "used",
+  [SLEEPING]  = "sleep ",
+  [RUNNABLE]  = "runble",
+  [RUNNING]   = "run   ",
+  [ZOMBIE]    = "zombie"
   };
   struct proc *p;
   char *state;
