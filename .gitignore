@@ -26,3 +26,4 @@ barrier
 compile_commands.json
 .cache
 *.idx
+.idea
