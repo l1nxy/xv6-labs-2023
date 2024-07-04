@@ -45,7 +45,7 @@ kvmmake(void)
 
   // allocate and map a kernel stack for each process.
   proc_mapstacks(kpgtbl);
-  
+
   return kpgtbl;
 }
 
@@ -88,9 +88,13 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
   if(va >= MAXVA)
     panic("walk");
 
+  /// 分为三级的页表 
   for(int level = 2; level > 0; level--) {
+    // 从页表中拿出来pte
     pte_t *pte = &pagetable[PX(level, va)];
     if(*pte & PTE_V) {
+      //从PTE中拿出来
+      //这里把PTE指向的下一级PTE存的地址拿出来，然后转换成物理地址
       pagetable = (pagetable_t)PTE2PA(*pte);
     } else {
       if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
@@ -99,6 +103,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
       *pte = PA2PTE(pagetable) | PTE_V;
     }
   }
+  // 可以拿到最顶层的PTE了
   return &pagetable[PX(0, va)];
 }
 
@@ -154,7 +159,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 
   if(size == 0)
     panic("mappages: size");
-  
+
   a = va;
   last = va + size - PGSIZE;
   for(;;){
@@ -345,7 +350,7 @@ void
 uvmclear(pagetable_t pagetable, uint64 va)
 {
   pte_t *pte;
-  
+
   pte = walk(pagetable, va, 0);
   if(pte == 0)
     panic("uvmclear");
@@ -448,4 +453,31 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+void _vmprint(pagetable_t pagetable,int depth)
+{
+  if(depth > 3){
+    return;
+  }
+  // there are 2^9 = 512 PTEs in a page table.
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    //if((pte & PTE_V) == 1){
+    if((pte & PTE_V) != 0){
+      // this PTE points to a lower-level page table.
+      for(int d = 0; d < depth; ++d){
+        printf(" ..");
+      }
+      uint64 child = PTE2PA(pte);
+      printf("%d: pte %p pa %p\n", i, pte, child);
+      _vmprint((pagetable_t)child, depth+1);
+    } 
+  }
+}
+
+void vmprint(pagetable_t pagetable)
+{
+  printf("page table %p\n",pagetable); 
+  _vmprint(pagetable,1); 
 }
