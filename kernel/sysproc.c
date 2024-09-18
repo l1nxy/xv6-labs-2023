@@ -71,10 +71,38 @@ sys_sleep(void)
 
 
 #ifdef LAB_PGTBL
+// First, it takes the starting virtual address of the first user page to check. 
+// Second, it takes the number of pages to check. 
+// Finally, it takes a user address to a buffer to store the results into a bitmask (a datastructure that uses one bit per page and where the first page corresponds to the least significant bit).
 int
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
+  uint64 va;
+  int pn;
+  uint64 addr;
+  argaddr(0,&va);
+  argint(1,&pn);
+  argaddr(2,&addr);
+
+  if(pn > 32){
+    return -1;
+  }
+
+  unsigned int result_bit = 0;
+  pagetable_t pg = myproc()->pagetable;
+  for(int i = 0; i < pn; ++i){
+    pte_t *pte = walk(pg, va + i * PGSIZE, 0);
+    if(pte == 0){
+      continue;
+    }
+    if((*pte & PTE_A) != 0) {
+      result_bit  |= 1 << i;
+      *pte &= ~(PTE_A);
+    }
+  }
+
+  copyout(pg, addr, (char *)&result_bit, sizeof(int));
+
   return 0;
 }
 #endif
